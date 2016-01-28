@@ -1,0 +1,139 @@
+@using SAL
+@using SAL.Models
+@{
+ViewBag.Title = "Index";
+Layout = "~/Views/Shared/_Layout.cshtml";
+} 
+<h1>Tickets</h1>
+@(Html.Kendo().Grid<QueryModel>()
+.Name("Grid")
+.ToolBar(toolbar =>
+{
+  toolbar.Template(@<text>
+  Ticket</a>
+  <div class="k-toolbar k-grid-toolbar">
+    <a class='k-button k-button-icontext k-grid-add' href='#'><span class='k-icon k-add'></span>Create new
+      @if (ViewData["Count"] != null && (int) ViewData["Count"] > 0)
+      {
+      <span class="top-grid-tx">You have <b>@ViewData["Count"]</b> open support tickets</span>
+    }
+  </div>
+})
+.Columns(columns =>
+</text>);
+{
+  columns.Bound(p => p.TaskId).Width(100).Title("No");
+  columns.Bound(p => p.Query).Title("Ticket").ClientTemplate(@Html.Raw("#=Query#").ToHtmlString());
+  columns.Bound(p => p.QueryDate).Width(50).Format("{0:d}").Title("Created");
+  columns.ForeignKey(c => c.StatusId, (IEnumerable<StatusModel>)ViewData["Statuses"], "Value", "Status").Width(100);
+  columns.ForeignKey(p => p.CategoryId, (IEnumerable<CategoryModel>)ViewData["Categories"], "CategoryId",
+  "CategoryDesc").Title("Category");
+  columns.ForeignKey(c => c.PriorityId, (IEnumerable<PriorityModel>)ViewData["Priorities"], "Value", "Value").Visible(false);
+  columns.Bound(c => c.StatusName).Visible(false);
+  columns.Command(command =>
+  {
+  command.Custom("Threads").Text("View").Click("showDetails");
+  if ((bool)ViewData["IsSupplierAdmin"])
+  {
+  command.Destroy();
+}
+}).Width(180).Title("Commands");
+})
+.Editable(conf => conf.Mode(GridEditMode.PopUp).TemplateName("CreateQuery").
+.Events(e =>
+{
+  e.DataBound("onDataBound");
+  e.Save("onSave");
+})
+Window(window =>
+{
+  window.Scrollable(true);
+  window.Width(630);
+}))
+.Pageable()
+.Sortable(s=>s.SortMode(GridSortMode.MultipleColumn))
+.Filterable()
+.DataSource(dataSource => dataSource.Ajax()
+.PageSize(GlobalVariables.DefaultPageSize)
+.Events(events =>
+{
+  events.Error("error_handler");
+})
+.Model(model =>
+{
+  model.Id(p => p.TaskId);
+  model.Field(p => p.TaskId).Editable(false);
+  //model.Field(p => p.AssignedTo).Editable(false);
+  model.Field(p => p.StatusId).Editable(false);
+  model.Field(p => p.StatusName).Editable(false);
+  model.Field(p => p.PriorityId).Editable(false);
+  model.Field(p => p.PriorityId).DefaultValue(ViewData["defaultPriority"]);
+  //model.Field(p => p.StatusId).DefaultValue(ViewData["defaultStatus"]);
+})
+.Read(read => read.Action("List", "Query"))
+.Create(create => create.Action("Create", "Query"))
+.Destroy(destroy => destroy.Action("Delete", "Query"))
+).Resizable(resize => resize.Columns(true)))
+@(Html.Kendo().Window()
+.Name("Threads")
+.Title("Ticket Thread")
+.Visible(false)
+.Modal(true)
+.Scrollable(true)
+.Draggable(true)
+.Width(630)
+
+) 
+<script type="text/javascript">
+  $(function () {
+    kendo.culture("en-IE");
+  });
+  function showDetails(e) {
+    var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+    var url = '@Url.Action("Edit", "Query")' + '?taskId=' + dataItem.TaskId;
+    var wnd = $("#Threads").data("kendoWindow");
+    if (wnd) {
+            // first click of the button - will automatically fetch the contentUrl
+            wnd = $("#Threads").kendoWindow({
+              title: "Ticket Thread",
+              actions: ["Close"],
+              content: url.toString(),
+              width: "600px",
+              visible: false,
+              modal: true
+            }).data("kendoWindow");
+          }
+        //wnd.refresh(url);
+        wnd.center();
+        wnd.open();
+      }
+      function onSave(e) {
+       
+       
+       
+       
+       
+//change EmployerId with your field name
+        //If current value is null
+        if (!e.model.CategoryId) {
+            //change the model value
+            e.model.CategoryId = 0;
+            //get the currently selected value from the DDL
+            var currentlySelectedValue = $(e.container.find('[data-role=dropdownlist]')[0]).data().kendoDropDownList.value();
+            //set the value to the model
+            e.model.set('CategoryId', currentlySelectedValue);
+          } }
+          function onDataBound(e) {
+          }
+          function error_handler(e) {
+            if (e.errors) {
+              var message = "Errors:\n";
+              $.each(e.errors, function (key, value) {
+                if ('errors' in value) {
+                  $.each(value.errors, function () {
+                    message += this + "\n";
+                  });
+                } });
+              alert(message);
+            }
+          } </script>
